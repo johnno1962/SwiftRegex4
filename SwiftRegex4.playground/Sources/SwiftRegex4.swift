@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 24/11/2017.
 //  Copyright © 2017 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/SwiftRegex4/SwiftRegex4.playground/Sources/SwiftRegex4.swift#2 $
+//  $Id: //depot/SwiftRegex4/SwiftRegex4.playground/Sources/SwiftRegex4.swift#8 $
 //
 //  Regexies represented as a String subscript on a String
 //
@@ -47,8 +47,16 @@ extension String: NSRegex {
         return NSMakeRange(pos, self.utf16.count-pos)
     }
 
+    private func firstMatch(pattern: NSRegex, options: NSRegularExpression.Options? = nil) -> NSTextCheckingResult? {
+        return pattern.asRegex(options: options).firstMatch(in: self, options: [], range: nsRange())
+    }
+
     private subscript(range: NSRange) -> Substring? {
         return Range(range, in: self).flatMap { self[$0] }
+    }
+
+    public subscript(pattern: NSRegex) -> Bool {
+        return firstMatch(pattern: pattern) != nil
     }
 
     public subscript(pattern: NSRegex) -> Substring? {
@@ -57,6 +65,42 @@ extension String: NSRegex {
         }
         set(newValue) {
             self[pattern, [], 0] = newValue
+        }
+    }
+
+    public subscript(pattern: NSRegex) -> [Substring?]? {
+        return firstMatch(pattern: pattern).flatMap { groups(from: $0) }
+    }
+
+    public subscript(pattern: NSRegex) -> [[Substring?]]? {
+        let matches = matching(pattern: pattern).map { $0 }
+        return matches.count != 0 ? matches : nil
+    }
+
+    public subscript(pattern: NSRegex) -> [Substring]? {
+        get {
+            let matches = pattern.asRegex(options: nil)
+                .matches(in: self, options: [], range: nsRange())
+            return matches.count != 0 ? matches.map { self[$0.range]! } : nil
+        }
+        set(newValue) {
+            let newValue = (newValue ?? []).map { String($0) }
+            replaceSubrange(startIndex ..< endIndex, with: replacing(pattern: pattern,
+                                                                     with: newValue))
+        }
+    }
+
+    public subscript(pattern: NSRegex) -> AnyIterator<[Substring?]> {
+        return matching(pattern: pattern)
+    }
+
+    public subscript(pattern: NSRegex) -> ([Substring?], UnsafeMutablePointer<ObjCBool>) -> String {
+        get {
+            fatalError("get of closure")
+        }
+        set(newValue) {
+            replaceSubrange(startIndex ..< endIndex, with: replacing(pattern: pattern,
+                                                                     with: newValue))
         }
     }
 
@@ -80,8 +124,7 @@ extension String: NSRegex {
 
     public subscript(pattern: NSRegex, options: NSRegularExpression.Options, group: Int) -> Substring? {
         get {
-            return pattern.asRegex(options: options).firstMatch(in: self, options: [], range: nsRange())
-                .flatMap { self[$0.range(at: group)] }
+            return firstMatch(pattern: pattern, options: options).flatMap { self[$0.range(at: group)] }
         }
         set(newValue) {
             replaceSubrange(startIndex ..< endIndex, with: replacing(pattern: pattern, group: group,

@@ -28,7 +28,7 @@ class SwiftRegex4Tests: XCTestCase {
 
         XCTAssertEqual(input["quick .* fox"], "quick brown fox", "basic match")
 
-        if let _ = input["quick orange fox"] {
+        if input["quick orange fox"] {
             XCTAssert(false, "non-match fail")
         }
         else {
@@ -44,7 +44,7 @@ class SwiftRegex4Tests: XCTestCase {
         minput["(the) (\\w+)"] = "$1 very $2"
         XCTAssertEqual(minput, "The quick brown fox jumps over the very lazy dog.", "replace pass")
 
-        minput = minput.replacing(pattern: "(\\w)(\\w+)") {
+        minput["(\\w)(\\w+)"] = {
             (groups, stop) in
             return groups[1]!.uppercased()+groups[2]!
         }
@@ -58,12 +58,12 @@ class SwiftRegex4Tests: XCTestCase {
         var z = "👨‍👩‍👧‍👦👨‍👩‍👧‍👦 👨‍👩‍👧‍👦  👩‍👩‍👦👩‍👩‍👦👩‍👩‍👦 🇭🇺 🇭🇺🇭🇺"
 
         z["👨‍👩‍👧‍👦"] = "👩‍👩‍👦"
-        z = z.replacing(pattern: "🇭🇺") {
+        z["🇭🇺"] = {
             (groups, stop) in
             stop.pointee = true
             return "🇫🇷"
         }
-        z = z.replacing(pattern: "👩‍👩‍👦", with: ["$0", "$0", "$0", "👪", "👩‍👧‍👧"])
+        z["👩‍👩‍👦"] = ["$0", "$0", "$0", "👪", "👩‍👧‍👧"]
 
         XCTAssertEqual(z, "👩‍👩‍👦👩‍👩‍👦 👩‍👩‍👦  👪👩‍👧‍👧👩‍👩‍👦 🇫🇷 🇭🇺🇭🇺", "emoji pass")
 
@@ -76,7 +76,7 @@ class SwiftRegex4Tests: XCTestCase {
             """
 
         var dict = [String: String]()
-        for groups in props.matching(pattern: "(\\w+)=('[^']*'|[^\n]*)") {
+        for groups in props["(\\w+)=('[^']*'|[^\n]*)"] {
             dict[String(groups[1]!)] = String(groups[2]!)
         }
         XCTAssertEqual(dict, ["name1": "value1", "name2": "'value2\nvalue2\n'"], "dictionary pass")
