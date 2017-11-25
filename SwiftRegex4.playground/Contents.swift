@@ -3,21 +3,27 @@
 var input = "Now is the time for all good men to come to the aid of the party"
 
 // basic regex match
-print(input["\\w+"]!)
+input["\\w+"]
 
 // regex replace by assignment
 input["men"] = "folk"
 print(input)
 
-// adding emphasis to words following "the"
+// indiviual groups can be accessed
+input["(all) (\\w+)", 2]
+
+// and assigned to
 input["the (\\w+)", 1] = "_$1_"
 print(input)
 
-// extractng words
+// extracting words using Sequence
 let words = input.matching(pattern: "\\w+").map { $0[0]! }
 print(words)
 
-// capitalising words
+// access groups of first match
+print(input.matching(pattern: "(\\w)(\\w+)?").first { _ in true }!)
+
+// capitalising words using closure
 print(input.replacing(pattern: "(_?)(\\w)(\\w*)") {
     (groups, stop) in
     return groups[1]!+groups[2]!.uppercased()+groups[3]!
