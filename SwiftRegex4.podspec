@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
     s.name        = "SwiftRegex4"
-    s.version     = "4.0"
+    s.version     = "4.1"
     s.summary     = "Regular expressions for Swift 4"
     s.homepage    = "https://github.com/johnno1962/SwiftRegex4"
     s.social_media_url = "https://twitter.com/Injection4Xcode"

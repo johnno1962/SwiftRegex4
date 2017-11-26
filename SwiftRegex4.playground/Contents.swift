@@ -37,7 +37,7 @@ print(input)
 input["(all) (\\w+)", 2]
 
 // and assigned to
-input["the (\\w+)", 1] = "_$1_"
+input["the (\\w+)", [.caseInsensitive], 1] = "_$1_"
 print(input)
 
 // or replaced using a closure
