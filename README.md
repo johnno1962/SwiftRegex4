@@ -1,7 +1,10 @@
 #  SwiftRegex4 - basic regex operations in Swift4
 
 A basic regular expression library based on the idea that subscripting into a string with
-a string should be a regexp match.
+a string should be a regex match. Where you might using an int or string subscript on a
+container to specify a subset of the data, a string subscript on a String type is notionally
+the matches with the subscript interpreted as a regex pattern which can be extracted,
+assigned to or iterated over.
 
 ```Swift
 //: Regexies represented as a String subscript on a String

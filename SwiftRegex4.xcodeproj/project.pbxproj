@@ -156,6 +156,7 @@
 					};
 					BB99B7041FC839D400A15CF1 = {
 						CreatedOnToolsVersion = 9.1;
+						LastSwiftMigration = 0910;
 						ProvisioningStyle = Automatic;
 					};
 				};

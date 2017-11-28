@@ -5,19 +5,21 @@
 //  Created by John Holdsworth on 24/11/2017.
 //  Copyright © 2017 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/SwiftRegex4/SwiftRegex4.playground/Sources/SwiftRegex4.swift#28 $
+//  $Id: //depot/SwiftRegex4/SwiftRegex4.playground/Sources/SwiftRegex4.swift#33 $
 //
 //  Regexies represented as a String subscript on a String
 //
 
 import Foundation
 
+public typealias RegexClosure = ([Substring?], UnsafeMutablePointer<ObjCBool>) -> String
+
 public protocol NSRegex {
     func asRegex(options: NSRegularExpression.Options?) -> NSRegularExpression
 }
 
 extension NSRegularExpression: NSRegex {
-    public func asRegex(options _: NSRegularExpression.Options? = nil) -> NSRegularExpression {
+    public func asRegex(options _: NSRegularExpression.Options?) -> NSRegularExpression {
         return self
     }
 }
@@ -34,7 +36,7 @@ extension String: NSRegex {
 
     private static var regexCache = [UInt: [String: NSRegularExpression]]()
 
-    public func asRegex(options: NSRegularExpression.Options? = nil) -> NSRegularExpression {
+    public func asRegex(options: NSRegularExpression.Options?) -> NSRegularExpression {
         do {
             let options = options ?? []
             if let regex = String.regexCache[options.rawValue]?[self] {
@@ -59,10 +61,15 @@ extension String: NSRegex {
         return Range(range, in: self).flatMap { self[$0] }
     }
 
+    private func groups(from match: NSTextCheckingResult) -> [Substring?] {
+        return (0 ..< match.numberOfRanges).map { self[match.range(at: $0)] }
+    }
+
     private func _firstMatch(pattern: NSRegex, options: NSRegularExpression.Options?) -> NSTextCheckingResult? {
         return pattern.asRegex(options: options).firstMatch(in: self, options: [], range: nsRange())
     }
 
+    /// test for match
     public func doesMatch(pattern: NSRegex, options: NSRegularExpression.Options? = nil) -> Bool {
         return _firstMatch(pattern: pattern, options: options) != nil
     }
@@ -71,6 +78,7 @@ extension String: NSRegex {
         return doesMatch(pattern: pattern)
     }
 
+    /// obtain first match
     public func firstMatch(pattern: NSRegex, options: NSRegularExpression.Options? = nil, group: Int = 0) -> Substring? {
         return _firstMatch(pattern: pattern, options: options).flatMap { self[$0.range(at: group)] }
     }
@@ -104,6 +112,7 @@ extension String: NSRegex {
         }
     }
 
+    /// particular group of first match (always Substring)
     public subscript(pattern: NSRegex, group: Int) -> Substring? {
         get {
             return firstMatch(pattern: pattern, group: group)
@@ -113,6 +122,7 @@ extension String: NSRegex {
         }
     }
 
+    /// obtain groups of first match
     public func firstGroups(pattern: NSRegex, options: NSRegularExpression.Options? = nil) -> [Substring?]? {
         return _firstMatch(pattern: pattern, options: options).flatMap { groups(from: $0) }
     }
@@ -125,6 +135,7 @@ extension String: NSRegex {
         return firstGroups(pattern: pattern, options: options)
     }
 
+    /// obtain groups of all matches
     public func allGroups(pattern: NSRegex, options: NSRegularExpression.Options? = nil) -> [[Substring?]] {
         return matching(pattern: pattern, options: options).map { $0 }
     }
@@ -139,6 +150,7 @@ extension String: NSRegex {
         return matches.count != 0 ? matches : nil
     }
 
+    /// iterators of groups across matches
     public subscript(pattern: NSRegex) -> AnyIterator<[Substring?]> {
         return matching(pattern: pattern)
     }
@@ -147,6 +159,7 @@ extension String: NSRegex {
         return matching(pattern: pattern, options: options)
     }
 
+    /// all matches in String as non-null Substring array & partial replace of first n matches
     public func allMatches(pattern: NSRegex, options: NSRegularExpression.Options? = nil, group: Int = 0) -> [Substring] {
         let regex = pattern.asRegex(options: options)
         return group > regex.numberOfCaptureGroups ? ["Invalid group number"] :
@@ -187,7 +200,8 @@ extension String: NSRegex {
         }
     }
 
-    public subscript(pattern: NSRegex) -> ([Substring?], UnsafeMutablePointer<ObjCBool>) -> String {
+    /// replacement using result of calling closure for each match
+    public subscript(pattern: NSRegex) -> RegexClosure {
         get {
             fatalError("Invalid get of closure")
         }
@@ -196,7 +210,7 @@ extension String: NSRegex {
         }
     }
 
-    public subscript(pattern: NSRegex, options: NSRegularExpression.Options) -> ([Substring?], UnsafeMutablePointer<ObjCBool>) -> String {
+    public subscript(pattern: NSRegex, options: NSRegularExpression.Options) -> RegexClosure {
         get {
             fatalError("Invalid get of closure")
         }
@@ -205,7 +219,7 @@ extension String: NSRegex {
         }
     }
 
-    public subscript(pattern: NSRegex, options: NSRegularExpression.Options, group: Int) -> ([Substring?], UnsafeMutablePointer<ObjCBool>) -> String {
+    public subscript(pattern: NSRegex, options: NSRegularExpression.Options, group: Int) -> RegexClosure {
         get {
             fatalError("Invalid get of closure")
         }
@@ -216,10 +230,44 @@ extension String: NSRegex {
         }
     }
 
-    private func groups(from match: NSTextCheckingResult) -> [Substring?] {
-        return (0 ..< match.numberOfRanges).map { self[match.range(at: $0)] }
+    // inplace replacements
+    public subscript(pattern: NSRegex, template: String) -> String {
+        return replacing(pattern: pattern, with: template)
     }
 
+    public subscript(pattern: NSRegex, options: NSRegularExpression.Options, template: String) -> String {
+        return replacing(pattern: pattern, options: options, with: template)
+    }
+
+    public subscript(pattern: NSRegex, options: NSRegularExpression.Options, group: Int, template: String) -> String {
+        return replacing(pattern: pattern, options: options, group: group, with: template)
+    }
+
+    public subscript(pattern: NSRegex, templates: [String]) -> String {
+        return replacing(pattern: pattern, with: templates)
+    }
+
+    public subscript(pattern: NSRegex, options: NSRegularExpression.Options, templates: [String]) -> String {
+        return replacing(pattern: pattern, options: options, with: templates)
+    }
+
+    public subscript(pattern: NSRegex, options: NSRegularExpression.Options, group: Int, templates: [String]) -> String {
+        return replacing(pattern: pattern, options: options, group: group, with: templates)
+    }
+
+    public subscript(pattern: NSRegex, closure: RegexClosure) -> String {
+        return replacing(pattern: pattern, with: closure)
+    }
+
+    public subscript(pattern: NSRegex, options: NSRegularExpression.Options, closure: RegexClosure) -> String {
+        return replacing(pattern: pattern, options: options, with: closure)
+    }
+
+    public subscript(pattern: NSRegex, options: NSRegularExpression.Options, group: Int, closure: RegexClosure) -> String {
+        return replacing(pattern: pattern, options: options, group: group, with: closure)
+    }
+
+    // named functions
     public func matching(pattern: NSRegex, options: NSRegularExpression.Options? = nil) -> AnyIterator<[Substring?]> {
         struct GroupsIterator: IteratorProtocol {
             public typealias Element = [Substring?]
@@ -268,7 +316,7 @@ extension String: NSRegex {
     }
 
     public func replacing(pattern: NSRegex, options: NSRegularExpression.Options? = nil, group: Int = 0,
-                          with closure: ([Substring?], UnsafeMutablePointer<ObjCBool>) -> String) -> String {
+                          with closure: RegexClosure) -> String {
         return _replacing(pattern: pattern, options: options, group: group, with: {
             (regex, match, stop) -> String in
             return closure(groups(from: match), stop)
