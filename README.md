@@ -25,12 +25,21 @@ if let groupsOfFirstMatch: [Substring?] = input["(all) (\\w+)"] {
     print("groups: \(groupsOfFirstMatch)")
 }
 
+// "splat" out up to five groups of first match
+if let (group1, group2): (Substring?, Substring?) = input["(all) (\\w+)"] {
+    print("group1: \(group1!), group2: \(group2!)")
+}
+
+if let (group1, group2): (String, String) = input["(all) (\\w+)"] {
+    print("group1: \(group1), group2: \(group2)")
+}
+
 if let allGroupsOfAllMatches: [[Substring?]] = input["(\\w)(\\w*)"] {
     print("allGroups: \(allGroupsOfAllMatches)")
 }
 
 // Matches only can be fetched with non-optional Substring array
-if let allMatches: [Substring] = input["(\\w)\\w+"] {
+if let allMatches: [Substring] = input["\\w+"] {
     print("words: \(allMatches)")
 }
 
@@ -67,4 +76,14 @@ for groups in props["(\\w+)\\s*=\\s*(.*)"] {
     params[String(groups[1]!)] = String(groups[2]!)
 }
 print(params)
+
+// use in switches
+let match = RegexMatch()
+switch input {
+case RegexPattern("(\\w)(\\w*)", match: match):
+    let (first, rest) = input[match]
+    print("\(first) \(rest)")
+default:
+    break
+}
 ```

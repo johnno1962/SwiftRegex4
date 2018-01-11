@@ -5,7 +5,7 @@
 //  Created by John Holdsworth on 24/11/2017.
 //  Copyright © 2017 John Holdsworth. All rights reserved.
 //
-//  $Id: //depot/SwiftRegex4/SwiftRegex4.playground/Sources/SwiftRegex4.swift#33 $
+//  $Id: //depot/SwiftRegex4/SwiftRegex4.playground/Sources/SwiftRegex4.swift#45 $
 //
 //  Regexies represented as a String subscript on a String
 //
@@ -58,14 +58,21 @@ extension String: NSRegex {
     }
 
     private subscript(range: NSRange) -> Substring? {
-        return Range(range, in: self).flatMap { self[$0] }
+        get {
+            return Range(range, in: self).flatMap { self[$0] }
+        }
+        set(newValue) {
+            if let range = Range(range, in: self) {
+                replaceSubrange(range, with: newValue!)
+            }
+        }
     }
 
     private func groups(from match: NSTextCheckingResult) -> [Substring?] {
         return (0 ..< match.numberOfRanges).map { self[match.range(at: $0)] }
     }
 
-    private func _firstMatch(pattern: NSRegex, options: NSRegularExpression.Options?) -> NSTextCheckingResult? {
+    fileprivate func _firstMatch(pattern: NSRegex, options: NSRegularExpression.Options? = []) -> NSTextCheckingResult? {
         return pattern.asRegex(options: options).firstMatch(in: self, options: [], range: nsRange())
     }
 
@@ -133,6 +140,85 @@ extension String: NSRegex {
 
     public subscript(pattern: NSRegex, options: NSRegularExpression.Options) -> [Substring?]? {
         return firstGroups(pattern: pattern, options: options)
+    }
+
+    /// "splat" groups of first match out into tuples.
+    public subscript(pattern: NSRegex) -> (Substring?, Substring?)? {
+        return firstGroups(pattern: pattern).flatMap { ($0[1], $0[2]) }
+    }
+
+    public subscript(pattern: NSRegex) -> (Substring?, Substring?, Substring?)? {
+        return firstGroups(pattern: pattern).flatMap { ($0[1], $0[2], $0[3]) }
+    }
+
+    public subscript(pattern: NSRegex) -> (Substring?, Substring?, Substring?, Substring?)? {
+        return firstGroups(pattern: pattern).flatMap { ($0[1], $0[2], $0[3], $0[4]) }
+    }
+
+    public subscript(pattern: NSRegex) -> (Substring?, Substring?, Substring?, Substring?, Substring?)? {
+        return firstGroups(pattern: pattern).flatMap { ($0[1], $0[2], $0[3], $0[4], $0[5]) }
+    }
+
+    /// more convenient/brittle versions of above
+    public func matchStrings(match: NSTextCheckingResult?, options: NSRegularExpression.Options? = nil) -> [String]? {
+        return match.flatMap { groups(from: $0) }?.map { String($0 ?? "") }
+    }
+
+    public subscript(pattern: NSRegex) -> (String, String)? {
+        get {
+            return matchStrings(match: _firstMatch(pattern: pattern)).flatMap { ($0[1], $0[2]) }
+        }
+        set(newValue) {
+            self = _replacing(pattern: pattern, replacements: [newValue!.0, newValue!.1])
+        }
+    }
+
+    public subscript(pattern: NSRegex) -> (String, String, String)? {
+        get {
+            return matchStrings(match: _firstMatch(pattern: pattern)).flatMap { ($0[1], $0[2], $0[3]) }
+        }
+        set(newValue) {
+            self = _replacing(pattern: pattern, replacements: [newValue!.0, newValue!.1, newValue!.2])
+        }
+    }
+
+    public subscript(pattern: NSRegex) -> (String, String, String, String)? {
+        get {
+            return matchStrings(match: _firstMatch(pattern: pattern)).flatMap { ($0[1], $0[2], $0[3], $0[4]) }
+        }
+        set(newValue) {
+            self = _replacing(pattern: pattern, replacements: [newValue!.0, newValue!.1, newValue!.2, newValue!.3])
+        }
+    }
+
+    public subscript(pattern: NSRegex) -> (String, String, String, String, String)? {
+        get {
+            return matchStrings(match: _firstMatch(pattern: pattern)).flatMap { ($0[1], $0[2], $0[3], $0[4], $0[5]) }
+        }
+        set(newValue) {
+            self = _replacing(pattern: pattern, replacements: [newValue!.0, newValue!.1, newValue!.2, newValue!.3, newValue!.4])
+        }
+    }
+
+    private func _replacing(pattern: NSRegex, replacements: [String]) -> String {
+        let regex = pattern.asRegex(options: nil)
+        var out = [Substring]()
+        var pos = 0
+
+        if let match = regex.firstMatch(in: self, options: [], range: nsRange()) {
+            for group in 1 ... replacements.count {
+                let range = match.range(at: group)
+                if range.location != NSNotFound {
+                    out.append(self[NSMakeRange(pos, range.location - pos)] ?? "Invalid range")
+                    out.append(Substring(regex.replacementString(for: match, in: self, offset: 0,
+                                                                 template: replacements[group-1])))
+                    pos = NSMaxRange(range)
+                }
+            }
+        }
+
+        out.append(self[nsRange(pos)] ?? "Invalid range")
+        return out.joined()
     }
 
     /// obtain groups of all matches
@@ -342,5 +428,48 @@ extension String: NSRegex {
 
         out.append(self[nsRange(pos)] ?? "Invalid range")
         return out.joined()
+    }
+
+    /// for use in switch cases
+    public subscript(match: RegexMatch) -> (String) {
+        return matchStrings(match: match.match).flatMap { ($0[1]) }!
+    }
+
+    public subscript(match: RegexMatch) -> (String, String) {
+        return matchStrings(match: match.match).flatMap { ($0[1], $0[2]) }!
+    }
+
+    public subscript(match: RegexMatch) -> (String, String, String) {
+        return matchStrings(match: match.match).flatMap { ($0[1], $0[2], $0[3]) }!
+    }
+
+    public subscript(match: RegexMatch) -> (String, String, String, String) {
+        return matchStrings(match: match.match).flatMap { ($0[1], $0[2], $0[3], $0[4]) }!
+    }
+
+    public subscript(match: RegexMatch) -> (String, String, String, String, String) {
+        return matchStrings(match: match.match).flatMap { ($0[1], $0[2], $0[3], $0[4], $0[5]) }!
+    }
+}
+
+public class RegexMatch {
+    var match: NSTextCheckingResult?
+    public init() {
+    }
+}
+
+public class RegexPattern {
+    let match: RegexMatch?
+    let regexp: NSRegularExpression
+    public init(_ regexp: NSRegex, options: NSRegularExpression.Options = [], capture match: RegexMatch?) {
+        self.regexp = regexp.asRegex(options: options)
+        self.match = match
+    }
+    public static func ~= (pattern: RegexPattern, value: String) -> Bool {
+        if let match = value._firstMatch(pattern: pattern.regexp, options: []) {
+            pattern.match?.match = match
+            return true
+        }
+        return false
     }
 }
