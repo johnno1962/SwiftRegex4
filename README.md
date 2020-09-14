@@ -1,5 +1,7 @@
 #  SwiftRegex4 - basic regex operations in Swift4
 
+Stop Press: This version of the library has been superceeded by the [Swift5 version](https://github.com/johnno1962/SwiftRegex5)
+
 A basic regular expression library based on the idea that subscripting into a string with
 a string should be a regex match. Where you might using an int or string subscript on a
 container to specify a subset of the data, a string subscript on a String type is notionally
